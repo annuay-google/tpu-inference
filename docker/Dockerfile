@@ -13,8 +13,8 @@
 # limitations under the License.
 
 ARG BASE_IMAGE="python:3.12-slim-bookworm"
-# The latest main will be used if arg unspecified
-ARG VLLM_COMMIT_HASH=""
+# Pin to a compatible stable release of vLLM
+ARG VLLM_COMMIT_HASH="v0.20.2"
 
 FROM $BASE_IMAGE
 
