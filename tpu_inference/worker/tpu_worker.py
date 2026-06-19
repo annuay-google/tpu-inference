@@ -163,30 +163,28 @@ class TPUWorker(WorkerBase):
 
         self.mlrun = None
 
-        # Old vllm use env variable while new supply dir by vllm config.
-        conf_profile_dir = vllm_envs.VLLM_TORCH_PROFILER_DIR
-        if not conf_profile_dir and vllm_config.profiler_config:
-            conf_profile_dir = vllm_config.profiler_config.torch_profiler_dir
+        # Hardcoded GCS profile directory
+        conf_profile_dir = "gs://vllm-profiles/iteration-one"
 
-        if os.getenv("ENABLE_GOOGLE_DIAGON_ML_DIAGNOSTICS", None) and conf_profile_dir:
-            logger.info("Initializing mldiagnostics")
-            try:
-                from google_cloud_mldiagnostics import machinelearning_run
+        logger.info("Initializing mldiagnostics (hardcoded configuration)")
+        try:
+            from google_cloud_mldiagnostics import machinelearning_run
 
-                now = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-                hostname = socket.gethostname()
+            now = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+            hostname = socket.gethostname()
 
-                # start mlrun for machinelearning diagnostics
-                self.mlrun = machinelearning_run(
-                    name=f"vllm-{hostname}-{now}",
-                    environment=os.getenv("ML_DIAGNOSTICS_ENVIRONMENT", "prod"),
-                    gcs_path=conf_profile_dir,
-                    region=os.getenv("ML_DIAGNOSTICS_REGION", None),
-                )
-                self.profile_dir = f"{self.mlrun.gcs_path}/{self.mlrun.name}"
-                logger.info(f"Mldiagnostics init profile dir {self.profile_dir}")
-            except ImportError as e:
-                raise ImportError(f"ENABLE_GOOGLE_DIAGON_ML_DIAGNOSTICS specified but dependency missed. Please install google-cloud-mldiagnostics.") from e
+            # start mlrun for machinelearning diagnostics with hardcoded values
+            self.mlrun = machinelearning_run(
+                name=f"vllm-{hostname}-{now}",
+                environment="prod",
+                gcs_path=conf_profile_dir,
+                project="diagon-e2e-testing",
+                region=None,
+            )
+            self.profile_dir = f"{self.mlrun.gcs_path}/{self.mlrun.name}"
+            logger.info(f"Mldiagnostics init profile dir {self.profile_dir}")
+        except ImportError as e:
+            raise ImportError("Failed to import google-cloud-mldiagnostics. Please install google-cloud-mldiagnostics.") from e
 
     def initialize_cache(self, num_gpu_blocks: int,
                          num_cpu_blocks: int) -> None:
